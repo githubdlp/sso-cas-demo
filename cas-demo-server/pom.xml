@@ -9,6 +9,7 @@
 		<version>0.0.1-SNAPSHOT</version>
 		<relativePath>../cas-demo/pom.xml</relativePath>
 	</parent>
+
 	<artifactId>cas-demo-server</artifactId>
 	<packaging>war</packaging>
 	<name>cas-demo-server Maven Webapp</name>
