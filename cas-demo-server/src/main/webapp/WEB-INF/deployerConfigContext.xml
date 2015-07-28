@@ -46,6 +46,7 @@
 				<entry key-ref="primaryAuthenticationHandler" value-ref="primaryPrincipalResolver" />
 
 				<!-- config for sso demo start -->
+				<entry key-ref="databaseAuthenticationHandler" value-ref="databasePrincipalResolver" />
 				<entry key-ref="oAuthAuthenticationHandler" />
 				<!-- config for sso demo end -->
 			</map>
@@ -56,12 +57,14 @@
 			name="authenticationMetaDataPopulators"> <util:list> <bean class="org.jasig.cas.extension.clearpass.CacheCredentialsMetaDataPopulator" 
 			c:credentialCache-ref="encryptedMap" /> </util:list> </property> -->
 
+		<!-- config for sso demo start -->
 		<property name="authenticationMetaDataPopulators">
 			<util:list>
 				<bean
 					class="org.jasig.cas.support.pac4j.authentication.ClientAuthenticationMetaDataPopulator" />
 			</util:list>
 		</property>
+		<!-- config for sso demo end -->
 
 		<!-- | Defines the security policy around authentication. Some alternative 
 			policies that ship with CAS: | | * NotPreventedAuthenticationPolicy - all 
@@ -159,6 +162,7 @@
 	</util:list>
 
 	<!-- config for sso demo start -->
+	<!-- oAuth configuration -->
 	<bean id="clientAction" class="org.jasig.cas.support.pac4j.web.flow.ClientAction">
 		<constructor-arg index="0" ref="centralAuthenticationService" />
 		<constructor-arg index="1" ref="clients" />
@@ -167,6 +171,53 @@
 	<bean id="oAuthAuthenticationHandler"
 		class="org.jasig.cas.support.pac4j.authentication.handler.support.ClientAuthenticationHandler">
 		<constructor-arg index="0" ref="clients" />
+	</bean>
+
+	<!-- database configuration -->
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource"
+		p:driverClass="${database.driverClass}" p:jdbcUrl="${database.url}"
+		p:user="${database.user}" p:password="${database.password}"
+		p:initialPoolSize="${database.pool.minSize}" p:minPoolSize="${database.pool.minSize}"
+		p:maxPoolSize="${database.pool.maxSize}"
+		p:maxIdleTimeExcessConnections="${database.pool.maxIdleTime}"
+		p:checkoutTimeout="${database.pool.maxWait}" p:acquireIncrement="${database.pool.acquireIncrement}"
+		p:acquireRetryAttempts="${database.pool.acquireRetryAttempts}"
+		p:acquireRetryDelay="${database.pool.acquireRetryDelay}"
+		p:idleConnectionTestPeriod="${database.pool.idleConnectionTestPeriod}"
+		p:preferredTestQuery="${database.pool.connectionHealthQuery}" />
+
+	<bean id="passwordEncoder"
+		class="org.jasig.cas.authentication.handler.DefaultPasswordEncoder"
+		c:encodingAlgorithm="MD5" p:characterEncoding="UTF-8" />
+
+	<bean id="databaseAuthenticationHandler"
+		class="org.jasig.cas.adaptors.jdbc.QueryDatabaseAuthenticationHandler"
+		p:dataSource-ref="dataSource" p:passwordEncoder-ref="passwordEncoder"
+		p:sql="select password from users where username=? and active=1" />
+
+	<bean id="databasePrincipalResolver"
+		class="org.jasig.cas.authentication.principal.PersonDirectoryPrincipalResolver">
+		<property name="attributeRepository" ref="singleRowJdbcPersonAttributeDao" />
+	</bean>
+
+	<bean id="singleRowJdbcPersonAttributeDao"
+		class="org.jasig.services.persondir.support.jdbc.SingleRowJdbcPersonAttributeDao">
+		<constructor-arg index="0" ref="dataSource" />
+		<constructor-arg index="1"
+			value="SELECT * FROM USER_DATA WHERE {0}" />
+		<property name="queryAttributeMapping">
+			<map>
+				<entry key="username" value="uid" />
+			</map>
+		</property>
+		<property name="resultAttributeMapping">
+			<map>
+				<entry key="uid" value="username" />
+				<entry key="first_name" value="first_name" />
+				<entry key="last_name" value="last_name" />
+				<entry key="email" value="email" />
+			</map>
+		</property>
 	</bean>
 	<!-- config for sso demo end -->
 </beans>
